@@ -1,22 +1,22 @@
-<?php
-if ($_POST["players"]) {
-    $configstr = file_get_contents('/home/lucan/e_config/config.json');
-    $config = json_decode($configstr, true);
 
+
+<?php
+require("../loginhelper.php");
+
+if ($_POST["players"]) {
     $conn = new mysqli(
         $config["sql_ip"],
         $config["sql_user"],
         $config["sql_pass"],
         $config["sql_db"]
     );
-
+    
     //disable error button on error to prevent spamming
     $GLOBALS['errButton'] = "$('#signupbtn').attr('class', 'btn btn-danger').html('Error').attr('disabled', '');
     setTimeout(function()" . "{" . "$('#signupbtn').removeAttr('disabled').attr('class', 'btn btn-primary').html('Sign up')}, 5000);";
 
     //show error modal with $message
     function errModal ($message) {
-        $conn->close();
         echo $GLOBALS['errButton'];
         die(
             "$('.modal-body').html('$message');
@@ -26,7 +26,6 @@ if ($_POST["players"]) {
 
     //show error popover on $id with $message
     function errPopover ($message, $id) {
-        $conn->close();
         echo $GLOBALS['errButton'];
         die("$('#$id').popover({content: '$message', placement: 'right', trigger: 'manual'}).popover('show');");
     }
@@ -41,13 +40,16 @@ if ($_POST["players"]) {
     }
 
     if ($conn->connect_error) {
+        $conn->close();
         errModal("An error occured while connecting to our database. Please try again later.");
     }
-
+    
     if (!isset($_POST["tournament"]) || $_POST["tournament"] == "" || $_POST["tournament"] == "Select a tournament") {
+        $conn->close();
         errPopover("Select a tournament", "tourDropdown");
     }
     else if (!isset($_POST["teamname"]) || $_POST["teamname"] == "") {
+        $conn->close();
         errModal("Bruh");
     }
 
@@ -65,6 +67,7 @@ if ($_POST["players"]) {
     }
 
     if (!isset($tournament)) {
+        $conn->close();
         errModal("Bruh");
     }
 
@@ -73,6 +76,7 @@ if ($_POST["players"]) {
 
     foreach ($playersCount as $player => $count) {
         if (isset($player) && $count > 1) {
+            $conn->close();
             errPopover("Duplicate player", "player_" . findPlayerIndex($_POST["players"], $player) . "_input");
         }
     }
@@ -90,6 +94,7 @@ if ($_POST["players"]) {
 
     if ($userCheckResult->num_rows > 0) {
         while ($row = $userCheckResult->fetch_assoc()) {
+            $conn->close();
             errPopover("Player is already signed up", "player_" . findPlayerIndex($_POST["players"], $row["osuname"]) . "_input");
         }
     }
@@ -97,6 +102,7 @@ if ($_POST["players"]) {
     //create new player array to remove empty values
     $players = array_filter($_POST["players"]);
     $players = array_values($players);
+    $playerids = array();
 
     //check player eligibility
     for ($i = 0; $i < 8; $i++) {
@@ -107,15 +113,18 @@ if ($_POST["players"]) {
             $userdata = json_decode($json);
 
             if (!isset($userdata[0])) {
+                $conn->close();
                 errPopover("Player does not exist", "player_" . findPlayerIndex($_POST["players"], $players[$i]) . "_input");
             }
             //check if player is inside rank range
             else if ($userdata[0]->pp_rank < $tournament["rank_max"] || $userdata[0]->pp_rank > $tournament["rank_min"]) {
+                $conn->close();
                 errPopover("Player is not in rank range", "player_" . findPlayerIndex($_POST["players"], $players[$i]) . "_input");
             }
 
             //format player name for sql insert
             $players[$i] = "'" . $players[$i] . "'";
+            $playerids[$i] = $userdata[0]->user_id;
         }
         else {
             //format empty slots for sql insert
@@ -124,6 +133,7 @@ if ($_POST["players"]) {
     }
 
     if (sizeof($players) < $tournament["team_size_min"]) {
+        $conn->close();
         errModal("Bruh");
     }
 
@@ -134,35 +144,36 @@ if ($_POST["players"]) {
         //insert players into user table
         $sqlUserInsert = "INSERT INTO users (osuname, signed_up) VALUES (";
 
-        foreach($players as $player) {
-            if ($player !== "DEFAULT") {
-                $sqlUserInsert = $sqlUserInsert . $player . ", 1), (";
+        for ($i = 0; $i < 8; $i++) {
+            if ($players[$i] !== "DEFAULT") {
+                $sqlUserInsert = "INSERT INTO users (osu_id, osu_user, signed_up) VALUES (" . $playerids[$i] . ", " . $players[$i] . ", 1) ON DUPLICATE KEY UPDATE signed_up = 1";
+
+                if ($conn->query($sqlUserInsert) === FALSE) {
+                    //if this error shows up, the team has signed up but not all players are in the list of registered players
+                    $conn->close();
+                    echo($sqlUserInsert);
+                    errModal("An unknown error occured, please notify an admin");
+                }
             }
         }
 
-        $sqlUserInsert = rtrim($sqlUserInsert, ", (") . ";";
-
-        if ($conn->query($sqlUserInsert) === TRUE) {
-            //return confirmation on succesful insert and disable form
-            echo "$('#signupbtn').attr('class', 'btn btn-success').html('Signed up!')
-            $('#formfieldset').attr('disabled', '');";
-        }
-        else {
-            //if this error shows up, the team has signed up but the players are not in the list of registered players
-            errModal("An unknown error occured, please notify an admin");
-        }
+        echo "$('#signupbtn').attr('class', 'btn btn-success').html('Signed up!')
+        $('#formfieldset').attr('disabled', '');";
     }
     else {
         //return error popovers for duplicate key entries
         if ($conn->errno === 1062) {
             if (strpos($conn->error, "for key 'PRIMARY'") !== FALSE) {
+                $conn->close();
                 errPopover("Team name is already registered", "teamnameinput");
             }
             else {
+                $conn->close();
                 errModal("An unknown error occured, please try again later.");
             }
         }
         else {
+            $conn->close();
             errModal("An unknown error occured, please try again later.");
         }
     }

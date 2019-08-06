@@ -1,3 +1,11 @@
+<?php
+    require("../loginhelper.php");
+
+    if ($_COOKIE["user"]) {
+        $user = getUser($_COOKIE["user"]);
+    }
+?>
+
 <!DOCTYPE html>
 <html lang="en-US">
 <head>
@@ -63,9 +71,6 @@
 <script>
     eval(
         <?php
-            $configstr = file_get_contents('/home/lucan/e_config/config.json');
-            $config = json_decode($configstr, true);
-
             $conn = new mysqli(
                 $config["sql_ip"],
                 $config["sql_user"],
@@ -86,17 +91,22 @@
 </script>
 
 <div class='d-flex' id='wrapper'>
-    <div class='bg-light border-right' id='sidebar-wrapper'>
-        <div class="sidebar-heading">Enigmatic Tourneys</div>
+    <div class="bg-light border-right" id="sidebar-wrapper">
+        <div class="sidebar-heading">Enigmatic Tourneys </div>
         <div class="list-group list-group-flush">
             <a href="https://justlucan.xyz/enigmatic/" class="list-group-item list-group-item-action bg-light">Main Page</a>
-            <a href="https://justlucan.xyz/enigmatic/login/" class="list-group-item list-group-item-action bg-light">Sign-ups</a>
-            <a href='#' class='list-group-item list-group-item-action bg-light'>Schedules</a>
-            <a href='#' class='list-group-item list-group-item-action bg-light'>Mappools</a>
-            <a href='#' class='list-group-item list-group-item-action bg-light'>Brackets</a>
-            <a href='#' class='list-group-item list-group-item-action bg-light'>Stats</a>
-            <a href='#' class='list-group-item list-group-item-action bg-light'>Streams</a>
-            <a href='#' class='list-group-item list-group-item-action bg-light'>Credits</a>
+            <a href="https://justlucan.xyz/enigmatic/signup/" class="list-group-item list-group-item-action bg-light">Sign-ups</a>
+            <a href="#" class="list-group-item list-group-item-action bg-light">Schedules</a>
+            <a href="#" class="list-group-item list-group-item-action bg-light">Mappools</a>
+            <a href="#" class="list-group-item list-group-item-action bg-light">Brackets</a>
+            <a href="#" class="list-group-item list-group-item-action bg-light">Stats</a>
+            <a href="#" class="list-group-item list-group-item-action bg-light">Streams</a>
+            <a href="#" class="list-group-item list-group-item-action bg-light">Credits</a>
+            <div style="display: inline-block; position: absolute; bottom: 0px; width: 15rem; text-align: center; display: table-cell;" class="list-group-item list-group-item-action bg-light">
+                <?php
+                    echo setSidebarUser($user);
+                ?>
+            </div>
         </div>
     </div>
 
@@ -188,6 +198,7 @@
             type: "POST",
             data: postData,
             success: function (data) {
+                console.log(data);
                 eval(data);
             }
         });
