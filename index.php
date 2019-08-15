@@ -1,8 +1,9 @@
 <?php
     require("./loginhelper.php");
 
-    if ($_COOKIE["user"]) {
-        $user = getUser($_COOKIE["user"]);
+    if ($_COOKIE["session"]) {
+        $user = getUser($_COOKIE["session"]);
+        $permissions = getUserPermissions($user);
     }
 ?>
 
@@ -17,26 +18,12 @@
     <link rel="stylesheet" href="index.css">
     <title>Enigmatic Tourney Soon</title>
 </head>
+
 <body>
 <div class="d-flex" id="wrapper">
-    <div class="bg-light border-right" id="sidebar-wrapper">
-        <div class="sidebar-heading">Enigmatic Tourneys </div>
-        <div class="list-group list-group-flush">
-            <a href="https://justlucan.xyz/enigmatic/" class="list-group-item list-group-item-action bg-light">Main Page</a>
-            <a href="https://justlucan.xyz/enigmatic/signup/" class="list-group-item list-group-item-action bg-light">Sign-ups</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Schedules</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Mappools</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Brackets</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Stats</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Streams</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Credits</a>
-            <div style="display: inline-block; position: absolute; bottom: 0px; width: 15rem; text-align: center; display: table-cell;" class="list-group-item list-group-item-action bg-light">
-                <?php
-                    echo setSidebarUser($user);
-                ?>
-            </div>
-        </div>
-    </div>
+    <?php
+        echo setSidebar($user, $permissions);
+    ?>
     <div id="page-content-wrapper">
         <div class="container-fluid">
             <h1 class="mt-2">Enigmatic Tourney RETURNS: The prequel</h1> 
