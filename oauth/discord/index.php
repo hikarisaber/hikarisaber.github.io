@@ -65,9 +65,10 @@ if ($_COOKIE["session"]) {
 
         $sql = "UPDATE user SET discordId = $discordUser->id, discordName =  '$discordUser->username" . "#" . $discordUser->discriminator . "' WHERE id = " . $user["id"];
         
+        header('Location: ' . "https://justlucan.xyz/enigmatic/");
+        
         if ($conn->query($sql) === TRUE) {
             $conn->close();
-            header('Location: ' . "https://justlucan.xyz/enigmatic/");
         }
         else {
             $conn->close();

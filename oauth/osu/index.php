@@ -42,6 +42,8 @@ else if ($_GET["code"]) {
 
     $sql = "INSERT IGNORE INTO user (osuId, osuName, avatar, cover, rank, rawPP, playCount, hasBadge, isRanked) VALUES ($user->id, '$user->username', '$user->avatar_url', '$user->cover_url', " . $user->statistics->pp_rank . ", " . $user->statistics->pp . ", " . $user->statistics->play_count . $hasBadge . ", " . $user->statistics->is_ranked . ");";
 
+    header('Location: ' . "https://justlucan.xyz/enigmatic/");
+
     if($conn->query($sql) === TRUE) {
         $sql = "SELECT id FROM user WHERE osuId = $user->id";
         $result = $conn->query($sql);
@@ -51,7 +53,6 @@ else if ($_GET["code"]) {
         
         if ($conn->query($sql)) {
             $conn->close();
-            header("Location: https://justlucan.xyz/enigmatic/");
         }
         else {
             atEveryone();
@@ -63,7 +64,6 @@ else if ($_GET["code"]) {
     }
     else {
         $conn->close();
-        header("Location: https://justlucan.xyz/enigmatic/");
     }
 }
 else {
