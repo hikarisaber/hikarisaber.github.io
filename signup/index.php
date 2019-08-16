@@ -1,8 +1,9 @@
 <?php
     require("../loginhelper.php");
 
-    if ($_COOKIE["user"]) {
-        $user = getUser($_COOKIE["user"]);
+    if ($_COOKIE["session"]) {
+        $user = getUser($_COOKIE["session"]);
+        $permissions = getUserPermissions($user);
     }
 ?>
 
@@ -68,47 +69,32 @@
     </div>
 </div>
 
-<script>
-    eval(
-        <?php
-            $conn = new mysqli(
-                $config["sql_ip"],
-                $config["sql_user"],
-                $config["sql_pass"],
-                $config["sql_db"]
-            );
-
-            if ($conn->connect_error) {
-                //shows error modal on database connection failure
-                echo(
-                    "`$('#signupbtn').attr('class', 'btn btn-danger').html('Error');
-                    $('.modal-body').html('An error occured while connecting to our database. Please try again later.');
-                    $('#errorModal').modal('show');`"
-                );
-            }
-        ?>
-    )
-</script>
-
 <div class='d-flex' id='wrapper'>
-    <div class="bg-light border-right" id="sidebar-wrapper">
-        <div class="sidebar-heading">Enigmatic Tourneys </div>
-        <div class="list-group list-group-flush">
-            <a href="https://justlucan.xyz/enigmatic/" class="list-group-item list-group-item-action bg-light">Main Page</a>
-            <a href="https://justlucan.xyz/enigmatic/signup/" class="list-group-item list-group-item-action bg-light">Sign-ups</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Schedules</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Mappools</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Brackets</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Stats</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Streams</a>
-            <a href="#" class="list-group-item list-group-item-action bg-light">Credits</a>
-            <div style="display: inline-block; position: absolute; bottom: 0px; width: 15rem; text-align: center; display: table-cell;" class="list-group-item list-group-item-action bg-light">
-                <?php
-                    echo setSidebarUser($user);
-                ?>
-            </div>
-        </div>
-    </div>
+    <?php
+        echo setSidebar($user, $permissions);
+    ?>
+
+    <script>
+        eval(
+            <?php
+                $conn = new mysqli(
+                    $config["sql_ip"],
+                    $config["sql_user"],
+                    $config["sql_pass"],
+                    $config["sql_db"]
+                );
+
+                if ($conn->connect_error) {
+                    //shows error modal on database connection failure
+                    echo(
+                        "`$('#signupbtn').attr('class', 'btn btn-danger').attr('disabled', '').html('Error');
+                        $('.modal-body').html('An error occured while connecting to our database. Please try again later.');
+                        $('#errorModal').modal('show');`"
+                    );
+                }
+            ?>
+        )
+    </script>
 
     <div id='page-content-wrapper'>
         <div class='container-fluid'>
@@ -120,15 +106,15 @@
                                 <option selected disabled hidden>Select a tournament</option>
                                 <?php
                                     //add tournaments as options in drop down menu
-                                    $sql = "SELECT * FROM tournaments";
+                                    $sql = "SELECT * FROM tournament";
                                     $result = $conn->query($sql);
 
                                     $json = "`[";
 
                                     if ($result->num_rows > 0) {
                                         while ($row = $result->fetch_assoc()) {
-                                            echo "<option>" . $row["acronym"] . " (" . $row["rank_max"] . "-" . $row["rank_min"] . ")" . "</option>";
-                                            $json = $json . "{\"tournament\": \"" . $row["acronym"] . " (" . $row["rank_max"] . "-" . $row["rank_min"] . ")\", \"team_size\": " . $row["team_size"] . ", \"team_size_min\": " . $row["team_size_min"] . "},";
+                                            echo "<option>" . $row["acronym"] . " (" . $row["maxRank"] . "-" . $row["minRank"] . ")" . "</option>";
+                                            $json = $json . "{\"tournament\": \"" . $row["acronym"] . " (" . $row["maxRank"] . "-" . $row["minRank"] . ")\", \"maxTeamSize\": " . $row["maxTeamSize"] . ", \"minTeamSize\": " . $row["minTeamSize"] . "},";
                                         }
                                     }
 
@@ -138,6 +124,38 @@
                         </div>
                         <div class='form-group'>
                             <input id='teamnameinput' type='text' required='text' maxlength='18' name='teamname' class='form-control' id='teamInput' placeholder='Team Name'>
+                        </div>
+                        <div class='form-group'>
+                            <select class='form-control' name='timezone' id='timezoneDropdown' required>
+                                <option selected disabled hidden>Select a timezone</option>
+                                <option>UTC-12</option>
+                                <option>UTC-11</option>
+                                <option>UTC-10</option>
+                                <option>UTC-9</option>
+                                <option>UTC-8</option>
+                                <option>UTC-7</option>
+                                <option>UTC-6</option>
+                                <option>UTC-5</option>
+                                <option>UTC-4</option>
+                                <option>UTC-3</option>
+                                <option>UTC-2</option>
+                                <option>UTC-1</option>
+                                <option>UTC</option>
+                                <option>UTC+1</option>
+                                <option>UTC+2</option>
+                                <option>UTC+3</option>
+                                <option>UTC+4</option>
+                                <option>UTC+5</option>
+                                <option>UTC+6</option>
+                                <option>UTC+7</option>
+                                <option>UTC+8</option>
+                                <option>UTC+9</option>
+                                <option>UTC+10</option>
+                                <option>UTC+11</option>
+                                <option>UTC+12</option>
+                                <option>UTC+13</option>
+                                <option>UTC+14</option>
+                            </select>
                         </div>
                         <div class='form-group' id='playerInput'>
                             
@@ -167,15 +185,17 @@
             var result = JSON.parse(<?php echo $json ?>);
 
             var index = result.findIndex(x => x.tournament === tournament);
-            var teamsize = result[index].team_size;
+            var teamsize = result[index].maxTeamSize;
 
-            for (i = 0; i < teamsize; i++) {
+            $("#playerInput").append(`<input type='text' name='players[0]' class='form-control' id='player_0_input' value='<?php echo $user["osuName"] ?>' readonly>`);
+
+            for (i = 1; i < teamsize; i++) {
                 var req = "";
-                if (i < result[index].team_size_min) {
+                if (i < result[index].minTeamSize) {
                     req = "required='text' ";
                 }
 
-                $("#playerInput").append(`<input type='text' ${req}name='players[${i}]' class='form-control' id='player_${i}_input' placeholder='Player ${i + 1}'>`)
+                $("#playerInput").append(`<input type='text' ${req}name='players[${i}]' class='form-control' id='player_${i}_input' placeholder='Player ${i + 1}'>`);
             }
         }
     }
@@ -189,22 +209,41 @@
     //post form on submit button click
     $("#signupform").submit(function(e) {
         var postData = $(this).serializeArray();
-        var formURL = $(this).attr("action");
 
-        $("#signupbtn").html(`<div class='spinner-border spinner-border-sm text-dark' role='status'></div>`);
+        if (postData["tournament"] === "Select a tournament") {
+            $('#tourDropdown').popover({content: 'Select a tournament', placement: 'right', trigger: 'manual'}).popover('show');
+        }
+        else if (postData["timezone"] === "Select a timezone") {
+            $('#timezoneDropdown').popover({content: 'Select a timezone', placement: 'right', trigger: 'manual'}).popover('show');
+        }
+        else {
+            //$("#signupbtn").html(`<div class='spinner-border spinner-border-sm text-dark' role='status'></div>`).attr("disabled", "");
 
-        $.ajax({
-            url: "submit.php",
-            type: "POST",
-            data: postData,
-            success: function (data) {
-                console.log(data);
-                eval(data);
-            }
-        });
+            $.ajax({
+                url: "submit.php",
+                type: "POST",
+                data: postData,
+                success: function (data) {
+                    console.log(data);
+                    eval(data);
+                }
+            });
+        }
 
         e.preventDefault();
     });
+
+    eval(
+        <?php
+            if (!isset($user)) {
+                echo(
+                    "`$('#signupbtn').attr('class', 'btn btn-danger').attr('disabled', '').html('Error');
+                    $('.modal-body').html('Please log in before signing up.');
+                    $('#errorModal').modal('show');`"
+                );
+            }
+        ?>
+    )
 </script>
 </body>
 </html>
