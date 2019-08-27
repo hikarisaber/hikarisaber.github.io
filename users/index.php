@@ -47,7 +47,7 @@
                 );
             }
 
-            $sql = "SELECT * FROM user ORDER BY badgeCheckRequired DESC";
+            $sql = "SELECT * FROM user";
             $result = $conn->query($sql);
         ?>
     )
@@ -81,7 +81,6 @@
                 <li class='list-group-item'>Discord Username</li>
                 <li class='list-group-item'>Rank</li>
                 <li class='list-group-item'>Playcount</li>
-                <li class='list-group-item'>Badge Check Required</li>
                 <li class='list-group-item'>Badges</li>
                 <li class='list-group-item'>Registered on</li>
                 <li class='list-group-item'>Last logged in on</li>
@@ -100,7 +99,6 @@
                                     <li class='list-group-item'><input name='discordName' type='string' class='form-control' value='" . $row["discordName"] . "' readonly></li>
                                     <li class='list-group-item'><input name='rank' type='number' class='form-control' value='" . $row["rank"] . "' readonly></li>
                                     <li class='list-group-item'><input name='playCount' type='number' class='form-control' value='" . $row["playCount"] . "' readonly></li>
-                                    <li class='list-group-item'><input name='badgeCheckRequired' type='number' class='form-control' max='1' value='" . $row["badgeCheckRequired"] . "'></li>
                                     <li class='list-group-item'><input name='badgeCount' type='number' class='form-control' max='1' value='" . $row["badgeCount"] . "'></li>
                                     <li class='list-group-item'><input name='registered' type='string' class='form-control' value='" . $row["registered"] . "' readonly></li>
                                     <li class='list-group-item'><input name='lastLogin' type='string' class='form-control' value='" . $row["lastLogin"] . "' readonly></li>

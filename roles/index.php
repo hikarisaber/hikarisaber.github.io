@@ -107,27 +107,27 @@
                 <form id='createForm'>
                     <h1 class="mt-2">Create</h1>
                     <div class='form-group'>
-                        <?php
-                            $exampleRow = $result->fetch_array(MYSQLI_ASSOC);
-                            $createInputs = "";
-                            $editInputs = "";
-
-                            foreach ($exampleRow as $key => $value) {
-                                if ($key !== "id" && $key !== "created") {
-                                    if (is_numeric($value)) {
-                                        $type = "type='number' required='number' min='1'";
-                                    }
-                                    else {
-                                        $type = "type='text' required='text' maxlength='100'";
-                                    }
-
-                                    $createInputs .= "<input id='" . $key . "Create' $type name=$key class='form-control' placeholder='$key'>";
-                                    $editInputs .= "<input id='" . $key . "Edit' $type name=$key class='form-control' placeholder='$key'>";
-                                }
-                            }
-
-                            echo $createInputs;
-                        ?>
+                        <input id="nameCreate" type="text" required="text" maxlength="50" name="name" class="form-control" placeholder="Name">
+                        <div class="form-group form-check">
+                            <input id="activeCreate" type="checkbox" name="active" value="0" class="form-check-input">
+                            <label class="form-check-label">Active</label>
+                        </div>
+                        <div class="form-group form-check">
+                            <input id="editTournamentCreate" type="checkbox" name="editTournament" value="0" class="form-check-input">
+                            <label class="form-check-label">Create/Edit Tournaments</label>
+                        </div>
+                        <div class="form-group form-check">
+                            <input id="editRoleCreate" type="checkbox" name="editRole" value="0" class="form-check-input">
+                            <label class="form-check-label">Create/Edit Roles</label>
+                        </div>
+                        <div class="form-group form-check">
+                            <input id="editUserCreate" type="checkbox" name="editUser" value="0" class="form-check-input">
+                            <label class="form-check-label">Edit Users</label>
+                        </div>
+                        <div class="form-group form-check">
+                            <input id="takeMatchesCreate" type="checkbox" name="takeMatches" value="0" class="form-check-input">
+                            <label class="form-check-label">Take matches to ref</label>
+                        </div>
                     </div>
                     <button id='createBtn' type='submit' class='btn btn-primary'>Create Tournament</button>
                 </form>
@@ -148,8 +148,10 @@
                                         echo "<option>" . $row["name"] . "</option>";
                                         $json = $json . "{\"id\": " . $row["id"] .
                                             ", \"name\": \"" . $row["name"] .
-                                            "\", \"active\": \"" . $row["active"] .
-                                            "\", \"editTournament\": " . $row["editTournament"] .
+                                            "\", \"active\":"  . $row["active"] .
+                                            ", \"editTournament\": " . $row["editTournament"] .
+                                            ", \"editUser\": " . $row["editUser"] .
+                                            ", \"takeMatches\": " . $row["takeMatches"] .
                                             ", \"editRole\": " . $row["editRole"] . "}, ";
                                     }
                                 }
@@ -157,9 +159,27 @@
                                 $json = rtrim($json, ", ") . "]`";
                             ?>
                         </select>
-                        <?php
-                            echo $editInputs;
-                        ?>
+                        <input id="nameEdit" type="text" required="text" maxlength="50" name="name" class="form-control" placeholder="Name">
+                        <div class="form-group form-check">
+                            <input id="activeEdit" type="checkbox" name="active" value="0" class="form-check-input">
+                            <label class="form-check-label">Active</label>
+                        </div>
+                        <div class="form-group form-check">
+                            <input id="editTournamentEdit" type="checkbox" name="editTournament" value="0" class="form-check-input">
+                            <label class="form-check-label">Create/Edit Tournaments</label>
+                        </div>
+                        <div class="form-group form-check">
+                            <input id="editRoleEdit" type="checkbox" name="editRole" value="0" class="form-check-input">
+                            <label class="form-check-label">Create/Edit Roles</label>
+                        </div>
+                        <div class="form-group form-check">
+                            <input id="editUserEdit" type="checkbox" name="editUser" value="0" class="form-check-input">
+                            <label class="form-check-label">Edit Users</label>
+                        </div>
+                        <div class="form-group form-check">
+                            <input id="takeMatchesEdit" type="checkbox" name="takeMatches" value="0" class="form-check-input">
+                            <label class="form-check-label">Take matches to ref</label>
+                        </div>
                     </div>
                     <button id='editBtn' type='submit' class='btn btn-primary'>Save Changes</button>
                 </form>
@@ -169,15 +189,21 @@
 </div>
 
 <script>
-    function addRoleData (tournament) {
-        let tourdata = JSON.parse(<?php echo $json ?>);
-        let index = tourdata.findIndex(x => x.name === tournament);
+    $('input[type="checkbox"]').change(function () {
+        this.value = (Number(this.checked));
+    })
+
+    function addRoleData (role) {
+        let roledata = JSON.parse(<?php echo $json ?>);
+        let index = roledata.findIndex(x => x.name === role);
         
-        $("#roleId").attr("value", tourdata[index].id);
-        $("#nameEdit").attr("value", tourdata[index].acronym);
-        $("#activeEdit").attr("value", tourdata[index].minTeamSize);
-        $("#tournamentPermEdit").attr("value", tourdata[index].maxTeamSize);
-        $("#rolePermEdit").attr("value", tourdata[index].minRank);
+        $("#roleId").attr("value", roledata[index].id)
+        $("#nameEdit").attr("value", roledata[index].name)
+        $("#activeEdit").attr("value", roledata[index].active).prop("checked", !!+roledata[index].active);
+        $("#editTournamentEdit").attr("value", roledata[index].editTournament).prop("checked", !!+roledata[index].editTournament);
+        $("#editRoleEdit").attr("value", roledata[index].editRole).prop("checked", !!+roledata[index].editRole);
+        $("#editUserEdit").attr("value", roledata[index].editUser).prop("checked", !!+roledata[index].editUser);
+        $("#takeMatchesEdit").attr("value", roledata[index].takeMatches).prop("checked", !!+roledata[index].takeMatches);
     }
 
     function postData (type, data) {
@@ -198,8 +224,8 @@
 
         $("#createBtn").html(`<div class='spinner-border spinner-border-sm text-dark' role='status'></div>`)//.attr("disabled", "");
 
-        e.preventDefault();
         postData("create", data);
+        e.preventDefault();
     });
 
     $("#editForm").submit(function(e) {
@@ -207,8 +233,8 @@
 
         $("#editBtn").html(`<div class='spinner-border spinner-border-sm text-dark' role='status'></div>`).attr("disabled", "");
 
-        e.preventDefault();
         postData("edit", data);
+        e.preventDefault();
     });
 </script>
 </body>

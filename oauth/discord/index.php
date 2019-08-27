@@ -46,7 +46,7 @@ if ($_COOKIE["session"]) {
         );
 
         if ($conn->connect_error) {
-            atEveryone();
+            echo atEveryone();
         }
         
         $token = apiRequest("https://discordapp.com/api/oauth2/token", array(
@@ -56,7 +56,8 @@ if ($_COOKIE["session"]) {
             'code' => $_GET["code"]
         ));
         
-        $user = getUser($_COOKIE["session"]);
+        $checkUser = getUser($_COOKIE["session"]);
+        $user = checkUserLogin($checkUser, $_COOKIE["session"]);
         
         $client_id = $config["discord_client_id"];
         $client_secret = $config["discord_client_secret"];
@@ -65,22 +66,23 @@ if ($_COOKIE["session"]) {
 
         $sql = "UPDATE user SET discordId = $discordUser->id, discordName =  '$discordUser->username" . "#" . $discordUser->discriminator . "' WHERE id = " . $user["id"];
         
-        header('Location: ' . "https://justlucan.xyz/enigmatic/");
-        
         if ($conn->query($sql) === TRUE) {
             $conn->close();
+
+            header("Location: https://justlucan.xyz/enigmatic/");
+            exit();
         }
         else {
             $conn->close();
-            atEveryone();
+            echo atEveryone();
         }
     }
     else {
-        haenStop();
+        echo haenStop();
     }
 }
 else {
-    haenStop();
+    echo haenStop();
 }
 ?>
 

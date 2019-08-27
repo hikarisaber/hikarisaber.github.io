@@ -10,7 +10,8 @@ function errModal ($message) {
 }
 
 if ($_COOKIE["session"]) {
-    $user = getUser($_COOKIE["session"]);
+    $checkUser = getUser($_COOKIE["session"]);
+    $user = checkUserLogin($checkUser, $_COOKIE["session"]);
     $permissions = getUserPermissions($user);
 
     if ($permissions["editRole"]) {

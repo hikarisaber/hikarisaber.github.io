@@ -7,8 +7,6 @@ function osuOauthCall($url, $access_token, $post=FALSE, $headers=array()) {
     curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
 
-    $response = curl_exec($ch);
-
     if ($post) {
         curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($post));
     
@@ -25,7 +23,7 @@ function osuOauthCall($url, $access_token, $post=FALSE, $headers=array()) {
     return json_decode($response);
 }
 
-function getUser($refresh_token) {
+function checkUserLogin($sessionUser, $key) {
     $conn = new mysqli(
         $GLOBALS["config"]["sql_server"],
         $GLOBALS["config"]["sql_user"],
@@ -34,67 +32,123 @@ function getUser($refresh_token) {
     );
 
     if ($conn->connect_error) {
-        atEveryone();
+        die(atEveryone());
     }
-
-    $token = osuOauthCall("https://osu.ppy.sh/oauth/token", $refresh_token, array(
+    
+    $token = osuOauthCall("https://osu.ppy.sh/oauth/token", FALSE, array(
         "grant_type" => "refresh_token",
         "client_id" => $GLOBALS["config"]["osu_client_id"],
         "client_secret" => $GLOBALS["config"]["osu_client_secret"],
-        "refresh_token" => $refresh_token
+        "refresh_token" => $sessionUser["refreshToken"]
     ));
 
-    $user = osuOauthCall("https://osu.ppy.sh/api/v2/me", $token->access_token);
-    
-    setcookie("session", $token->refresh_token, time() + 86400 * 30, "/", "justlucan.xyz", TRUE, TRUE);
-    $_COOKIE["session"] = $token->refresh_token;
+    if (!isset($token->access_token)) {
+        $conn->close();
+        unset($_COOKIE["session"]);
+        setcookie("session", null, -1, "/", "justlucan.xyz", TRUE, TRUE);
+        die(atEveryone());
+    }
 
-    $sql = "SELECT * FROM user WHERE osuId = $user->id;";
-    $result = $conn->query($sql);
+    $osuUser = osuOauthCall("https://osu.ppy.sh/api/v2/me", $token->access_token);
     
+    if ($osuUser->id == $sessionUser["osuId"]) {
+        $sql = "UPDATE user SET refreshToken = '$token->refresh_token' WHERE osuId = $osuUser->id";
+
+        if ($conn->query($sql) === TRUE) {
+            $conn->close();
+            return $sessionUser;
+        }
+        else {
+            $conn->close();
+            unset($_COOKIE["session"]);
+            setcookie("session", null, -1, "/", "justlucan.xyz", TRUE, TRUE);
+            die(atEveryone());
+        }
+    }
+    else {
+        $sql = "INSERT INTO alert (message) VALUES ('User with osu ID <$osuUser->id> attempted to log in using key <$key>');";
+        
+        if ($conn->query($sql) === TRUE) {
+            $conn->close();
+            unset($_COOKIE["session"]);
+            setcookie("session", null, -1, "/", "justlucan.xyz", TRUE, TRUE);
+            die(atEveryone());
+        }
+        else {
+            $conn->close();
+            unset($_COOKIE["session"]);
+            setcookie("session", null, -1, "/", "justlucan.xyz", TRUE, TRUE);
+            die(atEveryone());
+        }
+    }
+}
+
+function getUser ($key) {
+    $conn = new mysqli(
+        $GLOBALS["config"]["sql_server"],
+        $GLOBALS["config"]["sql_user"],
+        $GLOBALS["config"]["sql_pass"],
+        $GLOBALS["config"]["sql_db"]
+    );
+
+    if ($conn->connect_error) {
+        die(atEveryone());
+    }
+
+    $sql = "SELECT * FROM user WHERE sessionValue = '$key';";
+    $result = $conn->query($sql);
+
     if ($result->num_rows === 1) {
         $row = $result->fetch_array(MYSQLI_ASSOC);
+
+        $sqlLogin = "UPDATE user SET lastLogin = CURRENT_TIMESTAMP WHERE osuId = " . $row["osuId"] . ";";
+        $conn->query($sqlLogin);
         $conn->close();
         
         return $row;
     }
     else {
         $conn->close();
-        atEveryone();
+        return;
     }
 }
 
 function getUserPermissions ($user) {
-    $conn = new mysqli(
-        $GLOBALS["config"]["sql_server"],
-        $GLOBALS["config"]["sql_user"],
-        $GLOBALS["config"]["sql_pass"],
-        $GLOBALS["config"]["sql_db"]
-    );
-
-    if ($conn->connect_error) {
-        atEveryone();
-    }
-
-    $sql = "SELECT roleId FROM permission WHERE userId = " . $user["id"] . ";";
-    $role = $conn->query($sql);
-
-    if ($role->num_rows > 0) {
-        $perms = array();
-
-        while ($roleRow = $role->fetch_assoc()) {
-            $sql = "SELECT * FROM role WHERE id = " . $roleRow["roleId"] . ";";
-            $perm = $conn->query($sql);
-            $permRow = $perm->fetch_array(MYSQLI_ASSOC);
-            
-            foreach ($permRow as $key => $value) {
-                if ($value === "1" && $key !== "id" && $key !== "name" && $key !== "active") {
-                    $perms[$key] = 1;
+    if ($user) {
+        $conn = new mysqli(
+            $GLOBALS["config"]["sql_server"],
+            $GLOBALS["config"]["sql_user"],
+            $GLOBALS["config"]["sql_pass"],
+            $GLOBALS["config"]["sql_db"]
+        );
+    
+        if ($conn->connect_error) {
+            die(atEveryone());
+        }
+    
+        $sql = "SELECT roleId FROM permission WHERE userId = " . $user["id"] . ";";
+        $role = $conn->query($sql);
+    
+        if ($role->num_rows > 0) {
+            $perms = array();
+    
+            while ($roleRow = $role->fetch_assoc()) {
+                $sql = "SELECT * FROM role WHERE id = " . $roleRow["roleId"] . ";";
+                $perm = $conn->query($sql);
+                $permRow = $perm->fetch_array(MYSQLI_ASSOC);
+                
+                foreach ($permRow as $key => $value) {
+                    if ($value === "1" && $key !== "id" && $key !== "name" && $key !== "active") {
+                        $perms[$key] = 1;
+                    }
                 }
             }
+    
+            return $perms;
         }
-
-        return $perms;
+        else {
+            return array();
+        }
     }
     else {
         return array();
